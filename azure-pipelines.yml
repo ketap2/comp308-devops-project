@@ -1,0 +1,21 @@
+trigger:
+  - main
+  - feature/*
+  - bugfix/*
+  - release/*
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  # Node.js version
+  nodeVersion: "18.x"
+
+  # Environment variables
+  dev_port: 3000
+  qa_port: 3001
+  staging_port: 3002
+  prod_port: 3003
+
+  # Build artifact
+  buildArtifactName: "app-build"
