@@ -54,6 +54,26 @@ app.post("/api/users", (req, res) => {
   res.status(201).json(newUser);
 });
 
+// Update a user
+app.put("/api/users/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const { name, email } = req.body;
+
+  const userIndex = users.findIndex((u) => u.id === id);
+
+  if (userIndex === -1) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  users[userIndex] = {
+    ...users[userIndex],
+    ...(name && { name }),
+    ...(email && { email }),
+  };
+
+  res.json(users[userIndex]);
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
