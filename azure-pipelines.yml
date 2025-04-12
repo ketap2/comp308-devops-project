@@ -48,7 +48,7 @@ jobs:
         fetchDepth: 0
 
       # 2. Prepare SonarCloud Analysis
-      - task: SonarCloudPrepare@1
+      - task: SonarCloudPrepare@4
         displayName: "Prepare SonarCloud Analysis"
         inputs:
           SonarCloud: "SonarQubeConnection"
@@ -66,7 +66,8 @@ jobs:
 
       # 4. Install dependencies
       - script: |
-          npm ci
+          npm install
+          npm install --save-dev
         displayName: "Install dependencies"
 
       # 5. Lint code
@@ -81,11 +82,11 @@ jobs:
         displayName: "Run tests with coverage"
 
       # 7. Run SonarCloud analysis
-      - task: SonarCloudAnalyze@1
+      - task: SonarCloudAnalyze@4
         displayName: "Run SonarCloud Analysis"
 
       # 8. Optional: Publish Quality Gate Result
-      - task: SonarCloudPublish@1
+      - task: SonarCloudPublish@4
         displayName: "Publish Quality Gate Result"
         inputs:
           pollingTimeoutSec: "300"
@@ -129,27 +130,65 @@ jobs:
       # 13. Install production dependencies
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
-          npm ci --production
+          npm install --production
         displayName: "Install Production Dependencies"
 
-      # 14-17. Deploy to environments
-      - ${{ each env in parameters.environments }}:
-          - script: |
-              cd $(System.DefaultWorkingDirectory)/app
-              export NODE_ENV=${{ variables[format('{0}_node_env', env)] }}
-              export PORT=${{ variables[format('{0}_port', env)] }}
-              export API_VERSION=${{ variables[format('{0}_api_version', env)] }}
-              export LOG_LEVEL=${{ variables[format('{0}_log_level', env)] }}
-              export CORS_ORIGIN=${{ variables[format('{0}_cors_origin', env)] }}
-              node app.js &
-              echo "Application deployed to ${{ env }} on port ${{ variables[format('{0}_port', env)] }}"
-              sleep 5
-              curl http://localhost:${{ variables[format('{0}_port', env)] }}
-              kill $(lsof -t -i:${{ variables[format('{0}_port', env)] }}) || true
-            displayName: "Deploy to ${{ env }} Environment"
-        parameters:
-          environments:
-            - dev
-            - qa
-            - staging
-            - prod
+      # 14. Deploy to Development
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(dev_node_env)
+          export PORT=$(dev_port)
+          export API_VERSION=$(dev_api_version)
+          export LOG_LEVEL=$(dev_log_level)
+          export CORS_ORIGIN=$(dev_cors_origin)
+          node app.js &
+          echo "Application deployed to Dev environment on port $(dev_port)"
+          sleep 5
+          curl http://localhost:$(dev_port)
+          kill $(lsof -t -i:$(dev_port)) || true
+        displayName: "Deploy to Dev Environment"
+
+      # 15. Deploy to QA
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(qa_node_env)
+          export PORT=$(qa_port)
+          export API_VERSION=$(qa_api_version)
+          export LOG_LEVEL=$(qa_log_level)
+          export CORS_ORIGIN=$(qa_cors_origin)
+          node app.js &
+          echo "Application deployed to QA environment on port $(qa_port)"
+          sleep 5
+          curl http://localhost:$(qa_port)
+          kill $(lsof -t -i:$(qa_port)) || true
+        displayName: "Deploy to QA Environment"
+
+      # 16. Deploy to Staging
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(staging_node_env)
+          export PORT=$(staging_port)
+          export API_VERSION=$(staging_api_version)
+          export LOG_LEVEL=$(staging_log_level)
+          export CORS_ORIGIN=$(staging_cors_origin)
+          node app.js &
+          echo "Application deployed to Staging environment on port $(staging_port)"
+          sleep 5
+          curl http://localhost:$(staging_port)
+          kill $(lsof -t -i:$(staging_port)) || true
+        displayName: "Deploy to Staging Environment"
+
+      # 17. Deploy to Production
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(prod_node_env)
+          export PORT=$(prod_port)
+          export API_VERSION=$(prod_api_version)
+          export LOG_LEVEL=$(prod_log_level)
+          export CORS_ORIGIN=$(prod_cors_origin)
+          node app.js &
+          echo "Application deployed to Production environment on port $(prod_port)"
+          sleep 5
+          curl http://localhost:$(prod_port)
+          kill $(lsof -t -i:$(prod_port)) || true
+        displayName: "Deploy to Production Environment"
