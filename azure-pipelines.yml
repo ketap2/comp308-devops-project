@@ -48,21 +48,21 @@ jobs:
   - job: BuildAndDeploy
     displayName: "Build and Deploy"
     steps:
-      # Checkout with full history for SonarQube
+      # Checkout with full history for SonarCloud
       - checkout: self
         fetchDepth: 0
         displayName: "Checkout source code with full history"
 
-      # Prepare SonarQube Analysis
-      - task: SonarQubePrepare@5
-        displayName: "Prepare SonarQube Analysis"
+      # Prepare SonarCloud Analysis
+      - task: SonarCloudPrepare@1
+        displayName: "Prepare SonarCloud Analysis"
         inputs:
-          SonarQube: "SonarQubeConnection"
+          SonarCloud: "SonarQubeConnection"
+          organization: "kpate941"
           scannerMode: "CLI"
           configMode: "manual"
           cliProjectKey: "kpate941_COMP308-DevOps"
           cliProjectName: "COMP308-DevOps"
-          organization: "kpate941"
 
       # Setup Node.js
       - task: NodeTool@0
@@ -86,12 +86,12 @@ jobs:
           npm test
         displayName: "Run tests with coverage"
 
-      # Run SonarQube analysis
-      - task: SonarQubeAnalyze@5
-        displayName: "Run SonarQube Analysis"
+      # Run SonarCloud analysis
+      - task: SonarCloudAnalyze@1
+        displayName: "Run SonarCloud Analysis"
 
       # Publish Quality Gate result
-      - task: SonarQubePublish@5
+      - task: SonarCloudPublish@1
         displayName: "Publish Quality Gate Result"
         inputs:
           pollingTimeoutSec: "300"
