@@ -10,8 +10,8 @@ pool:
     - agent.name -equals my-laptop-agent
 
 variables:
-  nodeVersion: "18.x"
-  buildArtifactName: "app-build"
+  nodeVersion: '18.x'
+  buildArtifactName: 'app-build'
 
   # Environment variables
   dev_port: 3000
@@ -19,119 +19,126 @@ variables:
   staging_port: 3002
   prod_port: 3003
 
-  dev_node_env: "development"
-  dev_api_version: "v1"
-  dev_log_level: "debug"
-  dev_cors_origin: "http://localhost:3000"
+  dev_node_env: 'development'
+  dev_api_version: 'v1'
+  dev_log_level: 'debug'
+  dev_cors_origin: 'http://localhost:3000'
 
-  qa_node_env: "qa"
-  qa_api_version: "v1"
-  qa_log_level: "info"
-  qa_cors_origin: "https://qa.example.com"
+  qa_node_env: 'qa'
+  qa_api_version: 'v1'
+  qa_log_level: 'info'
+  qa_cors_origin: 'https://qa.example.com'
 
-  staging_node_env: "staging"
-  staging_api_version: "v1"
-  staging_log_level: "info"
-  staging_cors_origin: "https://staging.example.com"
+  staging_node_env: 'staging'
+  staging_api_version: 'v1'
+  staging_log_level: 'info'
+  staging_cors_origin: 'https://staging.example.com'
 
-  prod_node_env: "production"
-  prod_api_version: "v1"
-  prod_log_level: "error"
-  prod_cors_origin: "https://example.com"
+  prod_node_env: 'production'
+  prod_api_version: 'v1'
+  prod_log_level: 'error'
+  prod_cors_origin: 'https://example.com'
 
 jobs:
   - job: BuildAndDeploy
-    displayName: "Build and Deploy"
+    displayName: 'Build and Deploy'
     steps:
       # 1. Checkout with full history for SonarCloud
       - checkout: self
         fetchDepth: 0
 
-      # 2. Prepare SonarCloud Analysis
-      - task: SonarCloudPrepare@1
-        displayName: "Prepare SonarCloud Analysis"
-        inputs:
-          SonarCloud: "SonarQubeConnection"
-          organization: "kpate941"
-          scannerMode: "CLI"
-          configMode: "manual"
-          cliProjectKey: "kpate941_COMP308-DevOps"
-          cliProjectName: "COMP308-DevOps"
-
-      # 3. Setup Node.js
+      # 2. Setup Node.js
       - task: NodeTool@0
         inputs:
           versionSpec: $(nodeVersion)
-        displayName: "Install Node.js"
+        displayName: 'Install Node.js'
 
-      # 4. Install dependencies
+      # 3. Install dependencies
       - script: |
           npm install
           npm install --save-dev
-        displayName: "Install dependencies"
+        displayName: 'Install dependencies'
 
-      # 5. Lint code
+      # 4. Lint code
       - script: |
           npm run lint
-        displayName: "Run ESLint"
+        displayName: 'Run ESLint'
         continueOnError: true
 
-      # 6. Run tests with coverage
+      # 5. Run tests with coverage and generate JUnit report
       - script: |
-          npm test
-        displayName: "Run tests with coverage"
+          npm test -- --ci --coverage --reporters=default --reporters=jest-junit
+        displayName: 'Run tests with coverage'
+        env:
+          JEST_JUNIT_OUTPUT_DIR: 'test-results'
+          JEST_JUNIT_OUTPUT_NAME: 'junit.xml'
+
+      # 6. Prepare SonarCloud Analysis
+      - task: SonarCloudPrepare@1
+        displayName: 'Prepare SonarCloud Analysis'
+        inputs:
+          SonarCloud: 'SonarQubeConnection'
+          organization: 'kpate941'
+          scannerMode: 'CLI'
+          configMode: 'manual'
+          cliProjectKey: 'kpate941_COMP308-DevOps'
+          cliProjectName: 'COMP308-DevOps'
+          extraProperties: |
+            sonar.javascript.node.maxspace=4096
+            sonar.scm.provider=git
+            sonar.scm.disabled=false
 
       # 7. Run SonarCloud analysis
       - task: SonarCloudAnalyze@1
-        displayName: "Run SonarCloud Analysis"
+        displayName: 'Run SonarCloud Analysis'
 
-      # 8. Optional: Publish Quality Gate Result
+      # 8. Publish Quality Gate Result
       - task: SonarCloudPublish@1
-        displayName: "Publish Quality Gate Result"
+        displayName: 'Publish Quality Gate Result'
         inputs:
-          pollingTimeoutSec: "300"
+          pollingTimeoutSec: '300'
 
       # 9. Archive build artifacts
       - task: ArchiveFiles@2
-        displayName: "Archive app files"
+        displayName: 'Archive app files'
         inputs:
-          rootFolderOrFile: "$(System.DefaultWorkingDirectory)"
+          rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
           includeRootFolder: false
-          archiveType: "zip"
-          archiveFile: "$(Build.ArtifactStagingDirectory)/$(buildArtifactName).zip"
+          archiveType: 'zip'
+          archiveFile: '$(Build.ArtifactStagingDirectory)/$(buildArtifactName).zip'
           replaceExistingArchive: true
-          excludePattern: "node_modules/**|.git/**|.gitignore|README.md|coverage/**|.vscode/**"
+          excludePattern: 'node_modules/**|.git/**|.gitignore|README.md|coverage/**|.vscode/**'
 
       # 10. Publish build artifacts
       - task: PublishBuildArtifacts@1
-        displayName: "Publish Artifact"
+        displayName: 'Publish Artifact'
         inputs:
-          PathtoPublish: "$(Build.ArtifactStagingDirectory)"
-          ArtifactName: "drop"
-          publishLocation: "Container"
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'drop'
+          publishLocation: 'Container'
 
       # 11. Download build artifact
       - task: DownloadBuildArtifacts@1
-        displayName: "Download Build Artifacts"
+        displayName: 'Download Build Artifacts'
         inputs:
-          buildType: "current"
-          downloadType: "single"
-          artifactName: "drop"
-          downloadPath: "$(System.ArtifactsDirectory)"
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'drop'
+          downloadPath: '$(System.ArtifactsDirectory)'
 
       # 12. Extract the artifact
       - task: ExtractFiles@1
-        displayName: "Extract Files"
+        displayName: 'Extract Files'
         inputs:
-          archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
-          destinationFolder: "$(System.DefaultWorkingDirectory)/app"
+          archiveFilePatterns: '$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip'
+          destinationFolder: '$(System.DefaultWorkingDirectory)/app'
           cleanDestinationFolder: true
 
       # 13. Install production dependencies
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
           npm install --production
-        displayName: "Install Production Dependencies"
+        displayName: 'Install Production Dependencies'
 
       # 14. Deploy to Development
       - script: |
@@ -146,7 +153,7 @@ jobs:
           sleep 5
           curl http://localhost:$(dev_port)
           kill $(lsof -t -i:$(dev_port)) || true
-        displayName: "Deploy to Dev Environment"
+        displayName: 'Deploy to Dev Environment'
 
       # 15. Deploy to QA
       - script: |
@@ -161,7 +168,7 @@ jobs:
           sleep 5
           curl http://localhost:$(qa_port)
           kill $(lsof -t -i:$(qa_port)) || true
-        displayName: "Deploy to QA Environment"
+        displayName: 'Deploy to QA Environment'
 
       # 16. Deploy to Staging
       - script: |
@@ -176,7 +183,7 @@ jobs:
           sleep 5
           curl http://localhost:$(staging_port)
           kill $(lsof -t -i:$(staging_port)) || true
-        displayName: "Deploy to Staging Environment"
+        displayName: 'Deploy to Staging Environment'
 
       # 17. Deploy to Production
       - script: |
@@ -191,4 +198,4 @@ jobs:
           sleep 5
           curl http://localhost:$(prod_port)
           kill $(lsof -t -i:$(prod_port)) || true
-        displayName: "Deploy to Production Environment"
+        displayName: 'Deploy to Production Environment'
