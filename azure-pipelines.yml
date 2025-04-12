@@ -20,6 +20,30 @@ variables:
   # Build artifact
   buildArtifactName: "app-build"
 
+  # Development environment variables
+  dev_node_env: "development"
+  dev_api_version: "v1"
+  dev_log_level: "debug"
+  dev_cors_origin: "http://localhost:3000"
+
+  # QA environment variables
+  qa_node_env: "qa"
+  qa_api_version: "v1"
+  qa_log_level: "info"
+  qa_cors_origin: "https://qa.example.com"
+
+  # Staging environment variables
+  staging_node_env: "staging"
+  staging_api_version: "v1"
+  staging_log_level: "info"
+  staging_cors_origin: "https://staging.example.com"
+
+  # Production environment variables
+  prod_node_env: "production"
+  prod_api_version: "v1"
+  prod_log_level: "error"
+  prod_cors_origin: "https://example.com"
+
 stages:
   - stage: CI
     displayName: "Continuous Integration"
@@ -77,8 +101,6 @@ stages:
     displayName: "Deploy to Development"
     dependsOn: CI
     condition: succeeded()
-    variables:
-      - group: dev-environment-variables
     jobs:
       - job: DeployToDev
         displayName: "Deploy to Dev Environment"
@@ -109,7 +131,12 @@ stages:
           # Start the application
           - script: |
               cd $(System.DefaultWorkingDirectory)/app
-              PORT=$(dev_port) node app.js &
+              export NODE_ENV=$(dev_node_env)
+              export PORT=$(dev_port)
+              export API_VERSION=$(dev_api_version)
+              export LOG_LEVEL=$(dev_log_level)
+              export CORS_ORIGIN=$(dev_cors_origin)
+              node app.js &
               echo "Application deployed to Dev environment on port $(dev_port)"
               sleep 5
               curl http://localhost:$(dev_port)
@@ -120,8 +147,6 @@ stages:
     displayName: "Deploy to QA"
     dependsOn: DeployToDev
     condition: succeeded()
-    variables:
-      - group: qa-environment-variables
     jobs:
       - deployment: DeployToQA
         displayName: "Deploy to QA Environment"
@@ -159,7 +184,12 @@ stages:
                 # Deploy to QA environment
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
-                    PORT=$(qa_port) node app.js &
+                    export NODE_ENV=$(qa_node_env)
+                    export PORT=$(qa_port)
+                    export API_VERSION=$(qa_api_version)
+                    export LOG_LEVEL=$(qa_log_level)
+                    export CORS_ORIGIN=$(qa_cors_origin)
+                    node app.js &
                     echo "Application deployed to QA environment on port $(qa_port)"
                     sleep 5
                     curl http://localhost:$(qa_port)
@@ -170,8 +200,6 @@ stages:
     displayName: "Deploy to Staging"
     dependsOn: DeployToQA
     condition: succeeded()
-    variables:
-      - group: staging-environment-variables
     jobs:
       - deployment: DeployToStaging
         displayName: "Deploy to Staging Environment"
@@ -209,7 +237,12 @@ stages:
                 # Deploy to Staging environment
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
-                    PORT=$(staging_port) node app.js &
+                    export NODE_ENV=$(staging_node_env)
+                    export PORT=$(staging_port)
+                    export API_VERSION=$(staging_api_version)
+                    export LOG_LEVEL=$(staging_log_level)
+                    export CORS_ORIGIN=$(staging_cors_origin)
+                    node app.js &
                     echo "Application deployed to Staging environment on port $(staging_port)"
                     sleep 5
                     curl http://localhost:$(staging_port)
@@ -220,8 +253,6 @@ stages:
     displayName: "Deploy to Production"
     dependsOn: DeployToStaging
     condition: succeeded()
-    variables:
-      - group: production-environment-variables
     jobs:
       - deployment: DeployToProduction
         displayName: "Deploy to Production Environment"
@@ -259,7 +290,12 @@ stages:
                 # Deploy to Production environment
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
-                    PORT=$(prod_port) node app.js &
+                    export NODE_ENV=$(prod_node_env)
+                    export PORT=$(prod_port)
+                    export API_VERSION=$(prod_api_version)
+                    export LOG_LEVEL=$(prod_log_level)
+                    export CORS_ORIGIN=$(prod_cors_origin)
+                    node app.js &
                     echo "Application deployed to Production environment on port $(prod_port)"
                     sleep 5
                     curl http://localhost:$(prod_port)
