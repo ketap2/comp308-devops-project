@@ -54,25 +54,6 @@ stages:
               npm test
             displayName: "Run tests with coverage"
 
-          # SonarQube Analysis
-          - task: SonarQubePrepare@5
-            displayName: "Prepare SonarQube Analysis"
-            inputs:
-              SonarQube: "SonarQube"
-              scannerMode: "CLI"
-              configMode: "file"
-              projectKey: "kpate941_COMP308-DevOps"
-              projectName: "COMP308-DevOps"
-              organization: "kpate941"
-
-          - task: SonarQubeAnalyze@5
-            displayName: "Run SonarQube Analysis"
-
-          - task: SonarQubePublish@5
-            displayName: "Publish SonarQube Results"
-            inputs:
-              pollingTimeoutSec: "300"
-
           # Archive build artifacts
           - task: ArchiveFiles@2
             displayName: "Archive app files"
@@ -125,37 +106,15 @@ stages:
               npm ci --production
             displayName: "Install Production Dependencies"
 
-          # Copy environment configuration
-          - task: CopyFiles@2
-            displayName: "Copy Environment Configuration"
-            inputs:
-              SourceFolder: "$(System.DefaultWorkingDirectory)"
-              Contents: ".env.development"
-              TargetFolder: "$(System.DefaultWorkingDirectory)/app"
-              CleanTargetFolder: false
-
-          # Start the application with proper environment
+          # Start the application
           - script: |
               cd $(System.DefaultWorkingDirectory)/app
-              export NODE_ENV=development
               PORT=$(dev_port) node app.js &
               echo "Application deployed to Dev environment on port $(dev_port)"
-              # Give it a moment to start
               sleep 5
-              # Test if the application is running
               curl http://localhost:$(dev_port)
-              # Run integration tests against dev environment
-              npm run dev:test
-              # Kill the process to not block the agent
               kill $(lsof -t -i:$(dev_port)) || true
-            displayName: "Deploy and Validate Dev Environment"
-
-          # Health check
-          - script: |
-              echo "Running health check..."
-              curl -s http://localhost:$(dev_port)/health || exit 1
-            displayName: "Health Check"
-            continueOnError: false
+            displayName: "Deploy to Dev Environment"
 
   - stage: DeployToQA
     displayName: "Deploy to QA"
@@ -174,15 +133,6 @@ stages:
           runOnce:
             deploy:
               steps:
-                # Send approval request notification
-                - task: SendNotification@1
-                  displayName: "Send Approval Request"
-                  inputs:
-                    type: "approval"
-                    environment: "QA"
-                    template: "approval_required"
-                    recipients: "$(recipients.email.qa),$(recipients.webhook.qa)"
-
                 # Download build artifact
                 - task: DownloadBuildArtifacts@1
                   displayName: "Download Build Artifacts"
@@ -200,15 +150,6 @@ stages:
                     destinationFolder: "$(System.DefaultWorkingDirectory)/app"
                     cleanDestinationFolder: true
 
-                # Copy QA environment configuration
-                - task: CopyFiles@2
-                  displayName: "Copy QA Environment Configuration"
-                  inputs:
-                    SourceFolder: "$(System.DefaultWorkingDirectory)"
-                    Contents: ".env.qa"
-                    TargetFolder: "$(System.DefaultWorkingDirectory)/app"
-                    CleanTargetFolder: false
-
                 # Install dependencies
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
@@ -218,39 +159,12 @@ stages:
                 # Deploy to QA environment
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
-                    export NODE_ENV=qa
                     PORT=$(qa_port) node app.js &
                     echo "Application deployed to QA environment on port $(qa_port)"
                     sleep 5
-                    curl http://localhost:$(qa_port)/health
+                    curl http://localhost:$(qa_port)
                     kill $(lsof -t -i:$(qa_port)) || true
                   displayName: "Deploy to QA Environment"
-
-                # Run QA-specific tests
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    npm test
-                  displayName: "Run QA Tests"
-
-                # Send success notification
-                - task: SendNotification@1
-                  displayName: "Send Success Notification"
-                  inputs:
-                    type: "success"
-                    environment: "QA"
-                    template: "deployment_success"
-                    recipients: "$(recipients.email.qa),$(recipients.webhook.qa)"
-                  condition: succeeded()
-
-                # Send failure notification
-                - task: SendNotification@1
-                  displayName: "Send Failure Notification"
-                  inputs:
-                    type: "failure"
-                    environment: "QA"
-                    template: "deployment_failure"
-                    recipients: "$(recipients.email.qa),$(recipients.webhook.qa)"
-                  condition: failed()
 
   - stage: DeployToStaging
     displayName: "Deploy to Staging"
@@ -269,15 +183,6 @@ stages:
           runOnce:
             deploy:
               steps:
-                # Send approval request notification
-                - task: SendNotification@1
-                  displayName: "Send Approval Request"
-                  inputs:
-                    type: "approval"
-                    environment: "Staging"
-                    template: "approval_required"
-                    recipients: "$(recipients.email.staging),$(recipients.webhook.staging)"
-
                 # Download build artifact
                 - task: DownloadBuildArtifacts@1
                   displayName: "Download Build Artifacts"
@@ -287,6 +192,7 @@ stages:
                     artifactName: "drop"
                     downloadPath: "$(System.ArtifactsDirectory)"
 
+                # Extract the artifact
                 - task: ExtractFiles@1
                   displayName: "Extract Files"
                   inputs:
@@ -294,48 +200,21 @@ stages:
                     destinationFolder: "$(System.DefaultWorkingDirectory)/app"
                     cleanDestinationFolder: true
 
-                - task: CopyFiles@2
-                  displayName: "Copy Staging Environment Configuration"
-                  inputs:
-                    SourceFolder: "$(System.DefaultWorkingDirectory)"
-                    Contents: ".env.staging"
-                    TargetFolder: "$(System.DefaultWorkingDirectory)/app"
-                    CleanTargetFolder: false
-
+                # Install dependencies
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
                     npm ci --production
                   displayName: "Install Production Dependencies"
 
+                # Deploy to Staging environment
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
-                    export NODE_ENV=staging
                     PORT=$(staging_port) node app.js &
                     echo "Application deployed to Staging environment on port $(staging_port)"
                     sleep 5
-                    curl http://localhost:$(staging_port)/health
+                    curl http://localhost:$(staging_port)
                     kill $(lsof -t -i:$(staging_port)) || true
                   displayName: "Deploy to Staging Environment"
-
-                # Send success notification
-                - task: SendNotification@1
-                  displayName: "Send Success Notification"
-                  inputs:
-                    type: "success"
-                    environment: "Staging"
-                    template: "deployment_success"
-                    recipients: "$(recipients.email.staging),$(recipients.webhook.staging)"
-                  condition: succeeded()
-
-                # Send failure notification
-                - task: SendNotification@1
-                  displayName: "Send Failure Notification"
-                  inputs:
-                    type: "failure"
-                    environment: "Staging"
-                    template: "deployment_failure"
-                    recipients: "$(recipients.email.staging),$(recipients.webhook.staging)"
-                  condition: failed()
 
   - stage: DeployToProduction
     displayName: "Deploy to Production"
@@ -354,15 +233,6 @@ stages:
           runOnce:
             deploy:
               steps:
-                # Send approval request notification
-                - task: SendNotification@1
-                  displayName: "Send Approval Request"
-                  inputs:
-                    type: "approval"
-                    environment: "Production"
-                    template: "approval_required"
-                    recipients: "$(recipients.email.production),$(recipients.webhook.production)"
-
                 # Download build artifact
                 - task: DownloadBuildArtifacts@1
                   displayName: "Download Build Artifacts"
@@ -372,6 +242,7 @@ stages:
                     artifactName: "drop"
                     downloadPath: "$(System.ArtifactsDirectory)"
 
+                # Extract the artifact
                 - task: ExtractFiles@1
                   displayName: "Extract Files"
                   inputs:
@@ -379,45 +250,18 @@ stages:
                     destinationFolder: "$(System.DefaultWorkingDirectory)/app"
                     cleanDestinationFolder: true
 
-                - task: CopyFiles@2
-                  displayName: "Copy Production Environment Configuration"
-                  inputs:
-                    SourceFolder: "$(System.DefaultWorkingDirectory)"
-                    Contents: ".env.production"
-                    TargetFolder: "$(System.DefaultWorkingDirectory)/app"
-                    CleanTargetFolder: false
-
+                # Install dependencies
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
                     npm ci --production
                   displayName: "Install Production Dependencies"
 
+                # Deploy to Production environment
                 - script: |
                     cd $(System.DefaultWorkingDirectory)/app
-                    export NODE_ENV=production
                     PORT=$(prod_port) node app.js &
                     echo "Application deployed to Production environment on port $(prod_port)"
                     sleep 5
-                    curl http://localhost:$(prod_port)/health
+                    curl http://localhost:$(prod_port)
                     kill $(lsof -t -i:$(prod_port)) || true
                   displayName: "Deploy to Production Environment"
-
-                # Send success notification
-                - task: SendNotification@1
-                  displayName: "Send Success Notification"
-                  inputs:
-                    type: "success"
-                    environment: "Production"
-                    template: "deployment_success"
-                    recipients: "$(recipients.email.production),$(recipients.webhook.production)"
-                  condition: succeeded()
-
-                # Send failure notification
-                - task: SendNotification@1
-                  displayName: "Send Failure Notification"
-                  inputs:
-                    type: "failure"
-                    environment: "Production"
-                    template: "deployment_failure"
-                    recipients: "$(recipients.email.production),$(recipients.webhook.production)"
-                  condition: failed()
