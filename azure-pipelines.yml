@@ -44,145 +44,134 @@ variables:
   prod_log_level: "error"
   prod_cors_origin: "https://example.com"
 
-stages:
-  - stage: Build
-    displayName: "Build and Test"
-    jobs:
-      - job: Build
-        displayName: "Build and Test"
-        steps:
-          # Checkout source code
-          - checkout: self
-            displayName: "Checkout source code"
+jobs:
+  - job: BuildAndDeploy
+    displayName: "Build and Deploy"
+    steps:
+      # Checkout source code
+      - checkout: self
+        displayName: "Checkout source code"
 
-          # Setup Node.js
-          - task: NodeTool@0
-            displayName: "Install Node.js"
-            inputs:
-              versionSpec: $(nodeVersion)
+      # Setup Node.js
+      - task: NodeTool@0
+        displayName: "Install Node.js"
+        inputs:
+          versionSpec: $(nodeVersion)
 
-          # Install dependencies
-          - script: |
-              npm ci
-            displayName: "Install dependencies"
+      # Install dependencies
+      - script: |
+          npm ci
+        displayName: "Install dependencies"
 
-          # Lint code
-          - script: |
-              npm run lint
-            displayName: "Run ESLint"
-            continueOnError: true
+      # Lint code
+      - script: |
+          npm run lint
+        displayName: "Run ESLint"
+        continueOnError: true
 
-          # Run tests with coverage
-          - script: |
-              npm test
-            displayName: "Run tests with coverage"
+      # Run tests with coverage
+      - script: |
+          npm test
+        displayName: "Run tests with coverage"
 
-          # Archive build artifacts
-          - task: ArchiveFiles@2
-            displayName: "Archive app files"
-            inputs:
-              rootFolderOrFile: "$(System.DefaultWorkingDirectory)"
-              includeRootFolder: false
-              archiveType: "zip"
-              archiveFile: "$(Build.ArtifactStagingDirectory)/$(buildArtifactName).zip"
-              replaceExistingArchive: true
-              excludePattern: "node_modules/**|.git/**|.gitignore|README.md|coverage/**|.vscode/**"
+      # Archive build artifacts
+      - task: ArchiveFiles@2
+        displayName: "Archive app files"
+        inputs:
+          rootFolderOrFile: "$(System.DefaultWorkingDirectory)"
+          includeRootFolder: false
+          archiveType: "zip"
+          archiveFile: "$(Build.ArtifactStagingDirectory)/$(buildArtifactName).zip"
+          replaceExistingArchive: true
+          excludePattern: "node_modules/**|.git/**|.gitignore|README.md|coverage/**|.vscode/**"
 
-          # Publish build artifacts
-          - task: PublishBuildArtifacts@1
-            displayName: "Publish Artifact"
-            inputs:
-              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
-              ArtifactName: "drop"
-              publishLocation: "Container"
+      # Publish build artifacts
+      - task: PublishBuildArtifacts@1
+        displayName: "Publish Artifact"
+        inputs:
+          PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+          ArtifactName: "drop"
+          publishLocation: "Container"
 
-  - stage: Deploy
-    displayName: "Deploy"
-    dependsOn: Build
-    condition: succeeded()
-    jobs:
-      - job: Deploy
-        displayName: "Deploy to Environments"
-        steps:
-          # Download build artifact
-          - task: DownloadBuildArtifacts@1
-            displayName: "Download Build Artifacts"
-            inputs:
-              buildType: "current"
-              downloadType: "single"
-              artifactName: "drop"
-              downloadPath: "$(System.ArtifactsDirectory)"
+      # Download build artifact
+      - task: DownloadBuildArtifacts@1
+        displayName: "Download Build Artifacts"
+        inputs:
+          buildType: "current"
+          downloadType: "single"
+          artifactName: "drop"
+          downloadPath: "$(System.ArtifactsDirectory)"
 
-          # Extract the artifact
-          - task: ExtractFiles@1
-            displayName: "Extract Files"
-            inputs:
-              archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
-              destinationFolder: "$(System.DefaultWorkingDirectory)/app"
-              cleanDestinationFolder: true
+      # Extract the artifact
+      - task: ExtractFiles@1
+        displayName: "Extract Files"
+        inputs:
+          archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
+          destinationFolder: "$(System.DefaultWorkingDirectory)/app"
+          cleanDestinationFolder: true
 
-          # Install dependencies for deployment
-          - script: |
-              cd $(System.DefaultWorkingDirectory)/app
-              npm ci --production
-            displayName: "Install Production Dependencies"
+      # Install dependencies for deployment
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          npm ci --production
+        displayName: "Install Production Dependencies"
 
-          # Deploy to Development
-          - script: |
-              cd $(System.DefaultWorkingDirectory)/app
-              export NODE_ENV=$(dev_node_env)
-              export PORT=$(dev_port)
-              export API_VERSION=$(dev_api_version)
-              export LOG_LEVEL=$(dev_log_level)
-              export CORS_ORIGIN=$(dev_cors_origin)
-              node app.js &
-              echo "Application deployed to Dev environment on port $(dev_port)"
-              sleep 5
-              curl http://localhost:$(dev_port)
-              kill $(lsof -t -i:$(dev_port)) || true
-            displayName: "Deploy to Dev Environment"
+      # Deploy to Development
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(dev_node_env)
+          export PORT=$(dev_port)
+          export API_VERSION=$(dev_api_version)
+          export LOG_LEVEL=$(dev_log_level)
+          export CORS_ORIGIN=$(dev_cors_origin)
+          node app.js &
+          echo "Application deployed to Dev environment on port $(dev_port)"
+          sleep 5
+          curl http://localhost:$(dev_port)
+          kill $(lsof -t -i:$(dev_port)) || true
+        displayName: "Deploy to Dev Environment"
 
-          # Deploy to QA
-          - script: |
-              cd $(System.DefaultWorkingDirectory)/app
-              export NODE_ENV=$(qa_node_env)
-              export PORT=$(qa_port)
-              export API_VERSION=$(qa_api_version)
-              export LOG_LEVEL=$(qa_log_level)
-              export CORS_ORIGIN=$(qa_cors_origin)
-              node app.js &
-              echo "Application deployed to QA environment on port $(qa_port)"
-              sleep 5
-              curl http://localhost:$(qa_port)
-              kill $(lsof -t -i:$(qa_port)) || true
-            displayName: "Deploy to QA Environment"
+      # Deploy to QA
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(qa_node_env)
+          export PORT=$(qa_port)
+          export API_VERSION=$(qa_api_version)
+          export LOG_LEVEL=$(qa_log_level)
+          export CORS_ORIGIN=$(qa_cors_origin)
+          node app.js &
+          echo "Application deployed to QA environment on port $(qa_port)"
+          sleep 5
+          curl http://localhost:$(qa_port)
+          kill $(lsof -t -i:$(qa_port)) || true
+        displayName: "Deploy to QA Environment"
 
-          # Deploy to Staging
-          - script: |
-              cd $(System.DefaultWorkingDirectory)/app
-              export NODE_ENV=$(staging_node_env)
-              export PORT=$(staging_port)
-              export API_VERSION=$(staging_api_version)
-              export LOG_LEVEL=$(staging_log_level)
-              export CORS_ORIGIN=$(staging_cors_origin)
-              node app.js &
-              echo "Application deployed to Staging environment on port $(staging_port)"
-              sleep 5
-              curl http://localhost:$(staging_port)
-              kill $(lsof -t -i:$(staging_port)) || true
-            displayName: "Deploy to Staging Environment"
+      # Deploy to Staging
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(staging_node_env)
+          export PORT=$(staging_port)
+          export API_VERSION=$(staging_api_version)
+          export LOG_LEVEL=$(staging_log_level)
+          export CORS_ORIGIN=$(staging_cors_origin)
+          node app.js &
+          echo "Application deployed to Staging environment on port $(staging_port)"
+          sleep 5
+          curl http://localhost:$(staging_port)
+          kill $(lsof -t -i:$(staging_port)) || true
+        displayName: "Deploy to Staging Environment"
 
-          # Deploy to Production
-          - script: |
-              cd $(System.DefaultWorkingDirectory)/app
-              export NODE_ENV=$(prod_node_env)
-              export PORT=$(prod_port)
-              export API_VERSION=$(prod_api_version)
-              export LOG_LEVEL=$(prod_log_level)
-              export CORS_ORIGIN=$(prod_cors_origin)
-              node app.js &
-              echo "Application deployed to Production environment on port $(prod_port)"
-              sleep 5
-              curl http://localhost:$(prod_port)
-              kill $(lsof -t -i:$(prod_port)) || true
-            displayName: "Deploy to Production Environment"
+      # Deploy to Production
+      - script: |
+          cd $(System.DefaultWorkingDirectory)/app
+          export NODE_ENV=$(prod_node_env)
+          export PORT=$(prod_port)
+          export API_VERSION=$(prod_api_version)
+          export LOG_LEVEL=$(prod_log_level)
+          export CORS_ORIGIN=$(prod_cors_origin)
+          node app.js &
+          echo "Application deployed to Production environment on port $(prod_port)"
+          sleep 5
+          curl http://localhost:$(prod_port)
+          kill $(lsof -t -i:$(prod_port)) || true
+        displayName: "Deploy to Production Environment"
