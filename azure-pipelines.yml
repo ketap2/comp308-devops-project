@@ -5,7 +5,9 @@ trigger:
   - release/*
 
 pool:
-  vmImage: "ubuntu-latest"
+  name: LocalAgentPool
+  demands:
+    - agent.name -equals my-laptop-agent
 
 variables:
   # Node.js version
