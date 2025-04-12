@@ -156,6 +156,9 @@ stages:
   - stage: DeployToQA
     displayName: "Deploy to QA"
     dependsOn: DeployToDev
+    condition: succeeded()
+    variables:
+      - group: qa-environment-variables
     jobs:
       - deployment: DeployToQA
         displayName: "Deploy to QA Environment"
@@ -164,13 +167,61 @@ stages:
           runOnce:
             deploy:
               steps:
+                # Download build artifact
+                - task: DownloadBuildArtifacts@1
+                  displayName: "Download Build Artifacts"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "drop"
+                    downloadPath: "$(System.ArtifactsDirectory)"
+
+                # Extract the artifact
+                - task: ExtractFiles@1
+                  displayName: "Extract Files"
+                  inputs:
+                    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
+                    destinationFolder: "$(System.DefaultWorkingDirectory)/app"
+                    cleanDestinationFolder: true
+
+                # Copy QA environment configuration
+                - task: CopyFiles@2
+                  displayName: "Copy QA Environment Configuration"
+                  inputs:
+                    SourceFolder: "$(System.DefaultWorkingDirectory)"
+                    Contents: ".env.qa"
+                    TargetFolder: "$(System.DefaultWorkingDirectory)/app"
+                    CleanTargetFolder: false
+
+                # Install dependencies
                 - script: |
-                    echo "Deploying to QA environment on port $(qa_port)"
-                  displayName: "Mock Deploy to QA"
+                    cd $(System.DefaultWorkingDirectory)/app
+                    npm ci --production
+                  displayName: "Install Production Dependencies"
+
+                # Deploy to QA environment
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/app
+                    export NODE_ENV=qa
+                    PORT=$(qa_port) node app.js &
+                    echo "Application deployed to QA environment on port $(qa_port)"
+                    sleep 5
+                    curl http://localhost:$(qa_port)/health
+                    kill $(lsof -t -i:$(qa_port)) || true
+                  displayName: "Deploy to QA Environment"
+
+                # Run QA-specific tests
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/app
+                    npm test
+                  displayName: "Run QA Tests"
 
   - stage: DeployToStaging
     displayName: "Deploy to Staging"
     dependsOn: DeployToQA
+    condition: succeeded()
+    variables:
+      - group: staging-environment-variables
     jobs:
       - deployment: DeployToStaging
         displayName: "Deploy to Staging Environment"
@@ -179,13 +230,51 @@ stages:
           runOnce:
             deploy:
               steps:
+                # Similar steps as QA but with staging configuration
+                - task: DownloadBuildArtifacts@1
+                  displayName: "Download Build Artifacts"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "drop"
+                    downloadPath: "$(System.ArtifactsDirectory)"
+
+                - task: ExtractFiles@1
+                  displayName: "Extract Files"
+                  inputs:
+                    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
+                    destinationFolder: "$(System.DefaultWorkingDirectory)/app"
+                    cleanDestinationFolder: true
+
+                - task: CopyFiles@2
+                  displayName: "Copy Staging Environment Configuration"
+                  inputs:
+                    SourceFolder: "$(System.DefaultWorkingDirectory)"
+                    Contents: ".env.staging"
+                    TargetFolder: "$(System.DefaultWorkingDirectory)/app"
+                    CleanTargetFolder: false
+
                 - script: |
-                    echo "Deploying to Staging environment on port $(staging_port)"
-                  displayName: "Mock Deploy to Staging"
+                    cd $(System.DefaultWorkingDirectory)/app
+                    npm ci --production
+                  displayName: "Install Production Dependencies"
+
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/app
+                    export NODE_ENV=staging
+                    PORT=$(staging_port) node app.js &
+                    echo "Application deployed to Staging environment on port $(staging_port)"
+                    sleep 5
+                    curl http://localhost:$(staging_port)/health
+                    kill $(lsof -t -i:$(staging_port)) || true
+                  displayName: "Deploy to Staging Environment"
 
   - stage: DeployToProduction
     displayName: "Deploy to Production"
     dependsOn: DeployToStaging
+    condition: succeeded()
+    variables:
+      - group: production-environment-variables
     jobs:
       - deployment: DeployToProduction
         displayName: "Deploy to Production Environment"
@@ -194,6 +283,41 @@ stages:
           runOnce:
             deploy:
               steps:
+                # Similar steps as Staging but with production configuration
+                - task: DownloadBuildArtifacts@1
+                  displayName: "Download Build Artifacts"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "drop"
+                    downloadPath: "$(System.ArtifactsDirectory)"
+
+                - task: ExtractFiles@1
+                  displayName: "Extract Files"
+                  inputs:
+                    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
+                    destinationFolder: "$(System.DefaultWorkingDirectory)/app"
+                    cleanDestinationFolder: true
+
+                - task: CopyFiles@2
+                  displayName: "Copy Production Environment Configuration"
+                  inputs:
+                    SourceFolder: "$(System.DefaultWorkingDirectory)"
+                    Contents: ".env.production"
+                    TargetFolder: "$(System.DefaultWorkingDirectory)/app"
+                    CleanTargetFolder: false
+
                 - script: |
-                    echo "Deploying to Production environment on port $(prod_port)"
-                  displayName: "Mock Deploy to Production"
+                    cd $(System.DefaultWorkingDirectory)/app
+                    npm ci --production
+                  displayName: "Install Production Dependencies"
+
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/app
+                    export NODE_ENV=production
+                    PORT=$(prod_port) node app.js &
+                    echo "Application deployed to Production environment on port $(prod_port)"
+                    sleep 5
+                    curl http://localhost:$(prod_port)/health
+                    kill $(lsof -t -i:$(prod_port)) || true
+                  displayName: "Deploy to Production Environment"
