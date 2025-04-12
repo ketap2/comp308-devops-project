@@ -11,7 +11,13 @@
     "dev:start": "NODE_ENV=development node app.js",
     "dev:watch": "NODE_ENV=development nodemon app.js",
     "dev:test": "NODE_ENV=development jest --coverage",
-    "dev:lint": "NODE_ENV=development eslint ."
+    "dev:lint": "NODE_ENV=development eslint .",
+    "qa:start": "NODE_ENV=qa node app.js",
+    "qa:test": "NODE_ENV=qa jest --coverage",
+    "staging:start": "NODE_ENV=staging node app.js",
+    "staging:test": "NODE_ENV=staging jest --coverage",
+    "prod:start": "NODE_ENV=production node app.js",
+    "prod:test": "NODE_ENV=production jest --coverage"
   },
   "keywords": [
     "devops",
