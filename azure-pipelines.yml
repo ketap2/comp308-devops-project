@@ -170,6 +170,15 @@ stages:
           runOnce:
             deploy:
               steps:
+                # Send approval request notification
+                - task: SendNotification@1
+                  displayName: "Send Approval Request"
+                  inputs:
+                    type: "approval"
+                    environment: "QA"
+                    template: "approval_required"
+                    recipients: "$(recipients.email.qa),$(recipients.webhook.qa)"
+
                 # Download build artifact
                 - task: DownloadBuildArtifacts@1
                   displayName: "Download Build Artifacts"
@@ -219,6 +228,26 @@ stages:
                     npm test
                   displayName: "Run QA Tests"
 
+                # Send success notification
+                - task: SendNotification@1
+                  displayName: "Send Success Notification"
+                  inputs:
+                    type: "success"
+                    environment: "QA"
+                    template: "deployment_success"
+                    recipients: "$(recipients.email.qa),$(recipients.webhook.qa)"
+                  condition: succeeded()
+
+                # Send failure notification
+                - task: SendNotification@1
+                  displayName: "Send Failure Notification"
+                  inputs:
+                    type: "failure"
+                    environment: "QA"
+                    template: "deployment_failure"
+                    recipients: "$(recipients.email.qa),$(recipients.webhook.qa)"
+                  condition: failed()
+
   - stage: DeployToStaging
     displayName: "Deploy to Staging"
     dependsOn: DeployToQA
@@ -236,7 +265,16 @@ stages:
           runOnce:
             deploy:
               steps:
-                # Similar steps as QA but with staging configuration
+                # Send approval request notification
+                - task: SendNotification@1
+                  displayName: "Send Approval Request"
+                  inputs:
+                    type: "approval"
+                    environment: "Staging"
+                    template: "approval_required"
+                    recipients: "$(recipients.email.staging),$(recipients.webhook.staging)"
+
+                # Download build artifact
                 - task: DownloadBuildArtifacts@1
                   displayName: "Download Build Artifacts"
                   inputs:
@@ -275,6 +313,26 @@ stages:
                     kill $(lsof -t -i:$(staging_port)) || true
                   displayName: "Deploy to Staging Environment"
 
+                # Send success notification
+                - task: SendNotification@1
+                  displayName: "Send Success Notification"
+                  inputs:
+                    type: "success"
+                    environment: "Staging"
+                    template: "deployment_success"
+                    recipients: "$(recipients.email.staging),$(recipients.webhook.staging)"
+                  condition: succeeded()
+
+                # Send failure notification
+                - task: SendNotification@1
+                  displayName: "Send Failure Notification"
+                  inputs:
+                    type: "failure"
+                    environment: "Staging"
+                    template: "deployment_failure"
+                    recipients: "$(recipients.email.staging),$(recipients.webhook.staging)"
+                  condition: failed()
+
   - stage: DeployToProduction
     displayName: "Deploy to Production"
     dependsOn: DeployToStaging
@@ -292,7 +350,16 @@ stages:
           runOnce:
             deploy:
               steps:
-                # Similar steps as Staging but with production configuration
+                # Send approval request notification
+                - task: SendNotification@1
+                  displayName: "Send Approval Request"
+                  inputs:
+                    type: "approval"
+                    environment: "Production"
+                    template: "approval_required"
+                    recipients: "$(recipients.email.production),$(recipients.webhook.production)"
+
+                # Download build artifact
                 - task: DownloadBuildArtifacts@1
                   displayName: "Download Build Artifacts"
                   inputs:
@@ -330,3 +397,23 @@ stages:
                     curl http://localhost:$(prod_port)/health
                     kill $(lsof -t -i:$(prod_port)) || true
                   displayName: "Deploy to Production Environment"
+
+                # Send success notification
+                - task: SendNotification@1
+                  displayName: "Send Success Notification"
+                  inputs:
+                    type: "success"
+                    environment: "Production"
+                    template: "deployment_success"
+                    recipients: "$(recipients.email.production),$(recipients.webhook.production)"
+                  condition: succeeded()
+
+                # Send failure notification
+                - task: SendNotification@1
+                  displayName: "Send Failure Notification"
+                  inputs:
+                    type: "failure"
+                    environment: "Production"
+                    template: "deployment_failure"
+                    recipients: "$(recipients.email.production),$(recipients.webhook.production)"
+                  condition: failed()
