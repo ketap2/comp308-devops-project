@@ -162,7 +162,10 @@ stages:
     jobs:
       - deployment: DeployToQA
         displayName: "Deploy to QA Environment"
-        environment: "QA"
+        environment:
+          name: QA
+          resourceType: VirtualMachine
+          tags: qa
         strategy:
           runOnce:
             deploy:
@@ -225,7 +228,10 @@ stages:
     jobs:
       - deployment: DeployToStaging
         displayName: "Deploy to Staging Environment"
-        environment: "Staging"
+        environment:
+          name: Staging
+          resourceType: VirtualMachine
+          tags: staging
         strategy:
           runOnce:
             deploy:
@@ -278,7 +284,10 @@ stages:
     jobs:
       - deployment: DeployToProduction
         displayName: "Deploy to Production Environment"
-        environment: "Production"
+        environment:
+          name: Production
+          resourceType: VirtualMachine
+          tags: production
         strategy:
           runOnce:
             deploy:
