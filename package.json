@@ -1,0 +1,30 @@
+{
+  "name": "comp308-devops-project",
+  "version": "1.0.0",
+  "description": "DevOps implementation for COMP308 project",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "jest --coverage",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "devops",
+    "nodejs",
+    "express",
+    "azure-devops",
+    "ci/cd"
+  ],
+  "author": "ketap2 <kpate941@my.centennialcollege.ca>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.3",
+    "supertest": "^6.3.4"
+  }
+}
