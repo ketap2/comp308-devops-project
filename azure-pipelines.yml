@@ -19,3 +19,159 @@ variables:
 
   # Build artifact
   buildArtifactName: "app-build"
+
+stages:
+  - stage: CI
+    displayName: "Continuous Integration"
+    jobs:
+      - job: Build
+        displayName: "Build and Test"
+        steps:
+          # Checkout source code
+          - checkout: self
+            displayName: "Checkout source code"
+
+          # Setup Node.js
+          - task: NodeTool@0
+            displayName: "Install Node.js"
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          # Install dependencies
+          - script: |
+              npm ci
+            displayName: "Install dependencies"
+
+          # Lint code
+          - script: |
+              npm run lint
+            displayName: "Run ESLint"
+            continueOnError: true
+
+          # Run tests with coverage
+          - script: |
+              npm test
+            displayName: "Run tests with coverage"
+
+          # SonarQube Analysis
+          - task: SonarQubePrepare@5
+            displayName: "Prepare SonarQube Analysis"
+            inputs:
+              SonarQube: "SonarQube"
+              scannerMode: "CLI"
+              configMode: "file"
+
+          - task: SonarQubeAnalyze@5
+            displayName: "Run SonarQube Analysis"
+
+          - task: SonarQubePublish@5
+            displayName: "Publish SonarQube Results"
+            inputs:
+              pollingTimeoutSec: "300"
+
+          # Archive build artifacts
+          - task: ArchiveFiles@2
+            displayName: "Archive app files"
+            inputs:
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)"
+              includeRootFolder: false
+              archiveType: "zip"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/$(buildArtifactName).zip"
+              replaceExistingArchive: true
+              excludePattern: "node_modules/**|.git/**|.gitignore|README.md|coverage/**|.vscode/**"
+
+          # Publish build artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish Artifact"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName: "drop"
+              publishLocation: "Container"
+
+  - stage: DeployToDev
+    displayName: "Deploy to Development"
+    dependsOn: CI
+    jobs:
+      - job: DeployToDev
+        displayName: "Deploy to Dev Environment"
+        steps:
+          # Download build artifact
+          - task: DownloadBuildArtifacts@1
+            displayName: "Download Build Artifacts"
+            inputs:
+              buildType: "current"
+              downloadType: "single"
+              artifactName: "drop"
+              downloadPath: "$(System.ArtifactsDirectory)"
+
+          # Extract the artifact
+          - task: ExtractFiles@1
+            displayName: "Extract Files"
+            inputs:
+              archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
+              destinationFolder: "$(System.DefaultWorkingDirectory)/app"
+              cleanDestinationFolder: true
+
+          # Install dependencies for deployment
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/app
+              npm ci --production
+            displayName: "Install Production Dependencies"
+
+          # Start the application (simulate deployment)
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/app
+              PORT=$(dev_port) node app.js &
+              echo "Application deployed to Dev environment on port $(dev_port)"
+              # Give it a moment to start
+              sleep 5
+              # Test if the application is running
+              curl http://localhost:$(dev_port)
+              # Kill the process to not block the agent
+              kill $(lsof -t -i:$(dev_port)) || true
+            displayName: "Deploy to Dev Environment"
+
+  - stage: DeployToQA
+    displayName: "Deploy to QA"
+    dependsOn: DeployToDev
+    jobs:
+      - deployment: DeployToQA
+        displayName: "Deploy to QA Environment"
+        environment: "QA"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying to QA environment on port $(qa_port)"
+                  displayName: "Mock Deploy to QA"
+
+  - stage: DeployToStaging
+    displayName: "Deploy to Staging"
+    dependsOn: DeployToQA
+    jobs:
+      - deployment: DeployToStaging
+        displayName: "Deploy to Staging Environment"
+        environment: "Staging"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying to Staging environment on port $(staging_port)"
+                  displayName: "Mock Deploy to Staging"
+
+  - stage: DeployToProduction
+    displayName: "Deploy to Production"
+    dependsOn: DeployToStaging
+    jobs:
+      - deployment: DeployToProduction
+        displayName: "Deploy to Production Environment"
+        environment: "Production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying to Production environment on port $(prod_port)"
+                  displayName: "Mock Deploy to Production"
