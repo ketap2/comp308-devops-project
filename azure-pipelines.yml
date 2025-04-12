@@ -48,7 +48,7 @@ jobs:
         fetchDepth: 0
 
       # 2. Prepare SonarCloud Analysis
-      - task: SonarCloudPrepare@5
+      - task: SonarCloudPrepare@1
         displayName: "Prepare SonarCloud Analysis"
         inputs:
           SonarCloud: "SonarQubeConnection"
@@ -82,11 +82,11 @@ jobs:
         displayName: "Run tests with coverage"
 
       # 7. Run SonarCloud analysis
-      - task: SonarCloudAnalyze@5
+      - task: SonarCloudAnalyze@1
         displayName: "Run SonarCloud Analysis"
 
       # 8. Optional: Publish Quality Gate Result
-      - task: SonarCloudPublish@5
+      - task: SonarCloudPublish@1
         displayName: "Publish Quality Gate Result"
         inputs:
           pollingTimeoutSec: "300"
