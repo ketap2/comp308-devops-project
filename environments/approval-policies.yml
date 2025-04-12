@@ -1,0 +1,43 @@
+# Approval Policies for Environments
+
+qa_approval_policy:
+  name: "QA Environment Approval"
+  description: "Approval required for QA environment deployment"
+  approvers:
+    - id: "QA_LEAD_ID" # Replace with actual QA lead ID
+      name: "QA Lead"
+    - id: "DEV_LEAD_ID" # Replace with actual Dev lead ID
+      name: "Development Lead"
+  required_approvals: 1
+  timeout_minutes: 1440 # 24 hours
+  auto_approve: false
+
+staging_approval_policy:
+  name: "Staging Environment Approval"
+  description: "Approval required for Staging environment deployment"
+  approvers:
+    - id: "QA_LEAD_ID" # Replace with actual QA lead ID
+      name: "QA Lead"
+    - id: "DEV_LEAD_ID" # Replace with actual Dev lead ID
+      name: "Development Lead"
+    - id: "PRODUCT_OWNER_ID" # Replace with actual Product Owner ID
+      name: "Product Owner"
+  required_approvals: 2
+  timeout_minutes: 1440 # 24 hours
+  auto_approve: false
+
+production_approval_policy:
+  name: "Production Environment Approval"
+  description: "Approval required for Production environment deployment"
+  approvers:
+    - id: "QA_LEAD_ID" # Replace with actual QA lead ID
+      name: "QA Lead"
+    - id: "DEV_LEAD_ID" # Replace with actual Dev lead ID
+      name: "Development Lead"
+    - id: "PRODUCT_OWNER_ID" # Replace with actual Product Owner ID
+      name: "Product Owner"
+    - id: "SECURITY_LEAD_ID" # Replace with actual Security lead ID
+      name: "Security Lead"
+  required_approvals: 3
+  timeout_minutes: 1440 # 24 hours
+  auto_approve: false
