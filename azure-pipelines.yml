@@ -45,15 +45,14 @@ variables:
   prod_cors_origin: "https://example.com"
 
 stages:
-  - stage: CI
-    displayName: "Continuous Integration"
+  - stage: Build
+    displayName: "Build and Test"
     jobs:
       - job: Build
         displayName: "Build and Test"
         steps:
-          # Checkout source code with full history
+          # Checkout source code
           - checkout: self
-            fetchDepth: 0
             displayName: "Checkout source code"
 
           # Setup Node.js
@@ -97,13 +96,13 @@ stages:
               ArtifactName: "drop"
               publishLocation: "Container"
 
-  - stage: DeployToDev
-    displayName: "Deploy to Development"
-    dependsOn: CI
+  - stage: Deploy
+    displayName: "Deploy"
+    dependsOn: Build
     condition: succeeded()
     jobs:
-      - job: DeployToDev
-        displayName: "Deploy to Dev Environment"
+      - job: Deploy
+        displayName: "Deploy to Environments"
         steps:
           # Download build artifact
           - task: DownloadBuildArtifacts@1
@@ -128,7 +127,7 @@ stages:
               npm ci --production
             displayName: "Install Production Dependencies"
 
-          # Start the application
+          # Deploy to Development
           - script: |
               cd $(System.DefaultWorkingDirectory)/app
               export NODE_ENV=$(dev_node_env)
@@ -143,161 +142,47 @@ stages:
               kill $(lsof -t -i:$(dev_port)) || true
             displayName: "Deploy to Dev Environment"
 
-  - stage: DeployToQA
-    displayName: "Deploy to QA"
-    dependsOn: DeployToDev
-    condition: succeeded()
-    jobs:
-      - deployment: DeployToQA
-        displayName: "Deploy to QA Environment"
-        environment:
-          name: QA
-          resourceType: VirtualMachine
-          tags: qa
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Download build artifact
-                - task: DownloadBuildArtifacts@1
-                  displayName: "Download Build Artifacts"
-                  inputs:
-                    buildType: "current"
-                    downloadType: "single"
-                    artifactName: "drop"
-                    downloadPath: "$(System.ArtifactsDirectory)"
+          # Deploy to QA
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/app
+              export NODE_ENV=$(qa_node_env)
+              export PORT=$(qa_port)
+              export API_VERSION=$(qa_api_version)
+              export LOG_LEVEL=$(qa_log_level)
+              export CORS_ORIGIN=$(qa_cors_origin)
+              node app.js &
+              echo "Application deployed to QA environment on port $(qa_port)"
+              sleep 5
+              curl http://localhost:$(qa_port)
+              kill $(lsof -t -i:$(qa_port)) || true
+            displayName: "Deploy to QA Environment"
 
-                # Extract the artifact
-                - task: ExtractFiles@1
-                  displayName: "Extract Files"
-                  inputs:
-                    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
-                    destinationFolder: "$(System.DefaultWorkingDirectory)/app"
-                    cleanDestinationFolder: true
+          # Deploy to Staging
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/app
+              export NODE_ENV=$(staging_node_env)
+              export PORT=$(staging_port)
+              export API_VERSION=$(staging_api_version)
+              export LOG_LEVEL=$(staging_log_level)
+              export CORS_ORIGIN=$(staging_cors_origin)
+              node app.js &
+              echo "Application deployed to Staging environment on port $(staging_port)"
+              sleep 5
+              curl http://localhost:$(staging_port)
+              kill $(lsof -t -i:$(staging_port)) || true
+            displayName: "Deploy to Staging Environment"
 
-                # Install dependencies
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    npm ci --production
-                  displayName: "Install Production Dependencies"
-
-                # Deploy to QA environment
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    export NODE_ENV=$(qa_node_env)
-                    export PORT=$(qa_port)
-                    export API_VERSION=$(qa_api_version)
-                    export LOG_LEVEL=$(qa_log_level)
-                    export CORS_ORIGIN=$(qa_cors_origin)
-                    node app.js &
-                    echo "Application deployed to QA environment on port $(qa_port)"
-                    sleep 5
-                    curl http://localhost:$(qa_port)
-                    kill $(lsof -t -i:$(qa_port)) || true
-                  displayName: "Deploy to QA Environment"
-
-  - stage: DeployToStaging
-    displayName: "Deploy to Staging"
-    dependsOn: DeployToQA
-    condition: succeeded()
-    jobs:
-      - deployment: DeployToStaging
-        displayName: "Deploy to Staging Environment"
-        environment:
-          name: Staging
-          resourceType: VirtualMachine
-          tags: staging
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Download build artifact
-                - task: DownloadBuildArtifacts@1
-                  displayName: "Download Build Artifacts"
-                  inputs:
-                    buildType: "current"
-                    downloadType: "single"
-                    artifactName: "drop"
-                    downloadPath: "$(System.ArtifactsDirectory)"
-
-                # Extract the artifact
-                - task: ExtractFiles@1
-                  displayName: "Extract Files"
-                  inputs:
-                    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
-                    destinationFolder: "$(System.DefaultWorkingDirectory)/app"
-                    cleanDestinationFolder: true
-
-                # Install dependencies
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    npm ci --production
-                  displayName: "Install Production Dependencies"
-
-                # Deploy to Staging environment
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    export NODE_ENV=$(staging_node_env)
-                    export PORT=$(staging_port)
-                    export API_VERSION=$(staging_api_version)
-                    export LOG_LEVEL=$(staging_log_level)
-                    export CORS_ORIGIN=$(staging_cors_origin)
-                    node app.js &
-                    echo "Application deployed to Staging environment on port $(staging_port)"
-                    sleep 5
-                    curl http://localhost:$(staging_port)
-                    kill $(lsof -t -i:$(staging_port)) || true
-                  displayName: "Deploy to Staging Environment"
-
-  - stage: DeployToProduction
-    displayName: "Deploy to Production"
-    dependsOn: DeployToStaging
-    condition: succeeded()
-    jobs:
-      - deployment: DeployToProduction
-        displayName: "Deploy to Production Environment"
-        environment:
-          name: Production
-          resourceType: VirtualMachine
-          tags: production
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Download build artifact
-                - task: DownloadBuildArtifacts@1
-                  displayName: "Download Build Artifacts"
-                  inputs:
-                    buildType: "current"
-                    downloadType: "single"
-                    artifactName: "drop"
-                    downloadPath: "$(System.ArtifactsDirectory)"
-
-                # Extract the artifact
-                - task: ExtractFiles@1
-                  displayName: "Extract Files"
-                  inputs:
-                    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(buildArtifactName).zip"
-                    destinationFolder: "$(System.DefaultWorkingDirectory)/app"
-                    cleanDestinationFolder: true
-
-                # Install dependencies
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    npm ci --production
-                  displayName: "Install Production Dependencies"
-
-                # Deploy to Production environment
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/app
-                    export NODE_ENV=$(prod_node_env)
-                    export PORT=$(prod_port)
-                    export API_VERSION=$(prod_api_version)
-                    export LOG_LEVEL=$(prod_log_level)
-                    export CORS_ORIGIN=$(prod_cors_origin)
-                    node app.js &
-                    echo "Application deployed to Production environment on port $(prod_port)"
-                    sleep 5
-                    curl http://localhost:$(prod_port)
-                    kill $(lsof -t -i:$(prod_port)) || true
-                  displayName: "Deploy to Production Environment"
+          # Deploy to Production
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/app
+              export NODE_ENV=$(prod_node_env)
+              export PORT=$(prod_port)
+              export API_VERSION=$(prod_api_version)
+              export LOG_LEVEL=$(prod_log_level)
+              export CORS_ORIGIN=$(prod_cors_origin)
+              node app.js &
+              echo "Application deployed to Production environment on port $(prod_port)"
+              sleep 5
+              curl http://localhost:$(prod_port)
+              kill $(lsof -t -i:$(prod_port)) || true
+            displayName: "Deploy to Production Environment"
