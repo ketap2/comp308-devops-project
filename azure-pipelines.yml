@@ -149,21 +149,17 @@ jobs:
           set LOG_LEVEL=$(dev_log_level)
           set CORS_ORIGIN=$(dev_cors_origin)
 
-          echo "Starting application on port $(dev_port)..."
+          echo Starting application on port $(dev_port)...
           start /B node app.js
 
-          echo "Waiting for application to start..."
+          echo Waiting for application to start...
           timeout /t 5
 
-          echo "Testing application..."
+          echo Testing application...
           curl http://localhost:$(dev_port)
 
-          echo "Finding and terminating Node.js process..."
-          for /f "tokens=2" %%a in ('netstat -aon ^| findstr :$(dev_port)') do (
-            for /f "tokens=5" %%b in ('tasklist /FI "PID eq %%a" /NH') do (
-              if "%%b"=="node.exe" taskkill /F /PID %%a
-            )
-          )
+          echo Terminating Node.js process...
+          taskkill /F /IM node.exe
         displayName: 'Deploy to Dev Environment'
         failOnStderr: false
 
@@ -176,21 +172,17 @@ jobs:
           set LOG_LEVEL=$(qa_log_level)
           set CORS_ORIGIN=$(qa_cors_origin)
 
-          echo "Starting application on port $(qa_port)..."
+          echo Starting application on port $(qa_port)...
           start /B node app.js
 
-          echo "Waiting for application to start..."
+          echo Waiting for application to start...
           timeout /t 5
 
-          echo "Testing application..."
+          echo Testing application...
           curl http://localhost:$(qa_port)
 
-          echo "Finding and terminating Node.js process..."
-          for /f "tokens=2" %%a in ('netstat -aon ^| findstr :$(qa_port)') do (
-            for /f "tokens=5" %%b in ('tasklist /FI "PID eq %%a" /NH') do (
-              if "%%b"=="node.exe" taskkill /F /PID %%a
-            )
-          )
+          echo Terminating Node.js process...
+          taskkill /F /IM node.exe
         displayName: 'Deploy to QA Environment'
         failOnStderr: false
 
@@ -203,21 +195,17 @@ jobs:
           set LOG_LEVEL=$(staging_log_level)
           set CORS_ORIGIN=$(staging_cors_origin)
 
-          echo "Starting application on port $(staging_port)..."
+          echo Starting application on port $(staging_port)...
           start /B node app.js
 
-          echo "Waiting for application to start..."
+          echo Waiting for application to start...
           timeout /t 5
 
-          echo "Testing application..."
+          echo Testing application...
           curl http://localhost:$(staging_port)
 
-          echo "Finding and terminating Node.js process..."
-          for /f "tokens=2" %%a in ('netstat -aon ^| findstr :$(staging_port)') do (
-            for /f "tokens=5" %%b in ('tasklist /FI "PID eq %%a" /NH') do (
-              if "%%b"=="node.exe" taskkill /F /PID %%a
-            )
-          )
+          echo Terminating Node.js process...
+          taskkill /F /IM node.exe
         displayName: 'Deploy to Staging Environment'
         failOnStderr: false
 
@@ -230,20 +218,16 @@ jobs:
           set LOG_LEVEL=$(prod_log_level)
           set CORS_ORIGIN=$(prod_cors_origin)
 
-          echo "Starting application on port $(prod_port)..."
+          echo Starting application on port $(prod_port)...
           start /B node app.js
 
-          echo "Waiting for application to start..."
+          echo Waiting for application to start...
           timeout /t 5
 
-          echo "Testing application..."
+          echo Testing application...
           curl http://localhost:$(prod_port)
 
-          echo "Finding and terminating Node.js process..."
-          for /f "tokens=2" %%a in ('netstat -aon ^| findstr :$(prod_port)') do (
-            for /f "tokens=5" %%b in ('tasklist /FI "PID eq %%a" /NH') do (
-              if "%%b"=="node.exe" taskkill /F /PID %%a
-            )
-          )
+          echo Terminating Node.js process...
+          taskkill /F /IM node.exe
         displayName: 'Deploy to Production Environment'
         failOnStderr: false
