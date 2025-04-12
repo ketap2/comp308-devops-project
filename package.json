@@ -1,7 +1,7 @@
 {
   "name": "comp308-devops-project",
   "version": "1.0.0",
-  "description": "DevOps implementation for COMP308 project",
+  "description": "DevOps implementation for COMP308 project with Jest and Supertest",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
