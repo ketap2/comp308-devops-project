@@ -1,7 +1,10 @@
 const express = require('express');
 const app = express();
+
+// Load environment configuration
+const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
 require('dotenv').config({
-  path: `.env.${process.env.NODE_ENV || 'development'}`,
+  path: envFile,
 });
 
 const port = process.env.PORT || 3000;
@@ -9,18 +12,26 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 
-// Development-specific middleware
-if (process.env.NODE_ENV === 'development') {
-  const morgan = require('morgan');
-  app.use(morgan('dev'));
+// Environment-specific middleware
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+  if (process.env.ENABLE_LOGGING === 'true') {
+    const morgan = require('morgan');
+    app.use(morgan('dev'));
+  }
 
-  // Enable CORS for development
+  // Enable CORS for development and test
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-    res.header(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept'
-    );
+    const origin = req.headers.origin;
+    if (
+      origin &&
+      (origin === process.env.CORS_ORIGIN || process.env.CORS_ORIGIN === '*')
+    ) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept'
+      );
+    }
     next();
   });
 }
@@ -30,6 +41,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     environment: process.env.NODE_ENV,
+    version: process.env.API_VERSION,
     timestamp: new Date().toISOString(),
   });
 });
@@ -114,15 +126,26 @@ app.delete('/api/users/:id', (req, res) => {
   }
 
   const deletedUser = users[userIndex];
+  // Remove the user from the array
   users.splice(userIndex, 1);
+
+  // Verify the user was actually deleted
+  const userStillExists = users.some((u) => u.id === id);
+  if (userStillExists) {
+    return res.status(500).json({ error: 'Failed to delete user' });
+  }
 
   res.json(deletedUser);
 });
 
-// Start server
-app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
-});
+// Only start the server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Server running in ${process.env.NODE_ENV} mode on port ${port}`
+    );
+  });
+}
 
 module.exports = app; // Export for testing
