@@ -93,3 +93,67 @@ describe("API Endpoints", () => {
     });
   });
 });
+
+describe("Complete User Management Flow", () => {
+  let createdUserId;
+
+  it("should perform complete CRUD operations in sequence", async () => {
+    // 1. Create a new user
+    const createResponse = await request(app).post("/api/users").send({
+      name: "Flow Test User",
+      email: "flowtest@example.com",
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect(createResponse.body).toHaveProperty("id");
+    expect(createResponse.body.name).toBe("Flow Test User");
+    expect(createResponse.body.email).toBe("flowtest@example.com");
+
+    createdUserId = createResponse.body.id;
+
+    // 2. Read the created user
+    const readResponse = await request(app).get(`/api/users/${createdUserId}`);
+
+    expect(readResponse.status).toBe(200);
+    expect(readResponse.body.id).toBe(createdUserId);
+    expect(readResponse.body.name).toBe("Flow Test User");
+    expect(readResponse.body.email).toBe("flowtest@example.com");
+
+    // 3. Update the user
+    const updateResponse = await request(app)
+      .put(`/api/users/${createdUserId}`)
+      .send({
+        name: "Updated Flow Test User",
+        email: "updatedflow@example.com",
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.id).toBe(createdUserId);
+    expect(updateResponse.body.name).toBe("Updated Flow Test User");
+    expect(updateResponse.body.email).toBe("updatedflow@example.com");
+
+    // 4. Verify the update
+    const verifyUpdateResponse = await request(app).get(
+      `/api/users/${createdUserId}`
+    );
+
+    expect(verifyUpdateResponse.status).toBe(200);
+    expect(verifyUpdateResponse.body.name).toBe("Updated Flow Test User");
+    expect(verifyUpdateResponse.body.email).toBe("updatedflow@example.com");
+
+    // 5. Delete the user
+    const deleteResponse = await request(app).delete(
+      `/api/users/${createdUserId}`
+    );
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.body.id).toBe(createdUserId);
+
+    // 6. Verify the user is deleted
+    const verifyDeleteResponse = await request(app).get(
+      `/api/users/${createdUserId}`
+    );
+
+    expect(verifyDeleteResponse.status).toBe(404);
+  });
+});
