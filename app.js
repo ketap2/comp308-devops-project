@@ -74,6 +74,21 @@ app.put("/api/users/:id", (req, res) => {
   res.json(users[userIndex]);
 });
 
+// Delete a user
+app.delete("/api/users/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const userIndex = users.findIndex((u) => u.id === id);
+
+  if (userIndex === -1) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const deletedUser = users[userIndex];
+  users = users.filter((u) => u.id !== id);
+
+  res.json(deletedUser);
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
