@@ -48,9 +48,21 @@ jobs:
   - job: BuildAndDeploy
     displayName: "Build and Deploy"
     steps:
-      # Checkout source code
+      # Checkout with full history for SonarQube
       - checkout: self
-        displayName: "Checkout source code"
+        fetchDepth: 0
+        displayName: "Checkout source code with full history"
+
+      # Prepare SonarQube Analysis
+      - task: SonarQubePrepare@5
+        displayName: "Prepare SonarQube Analysis"
+        inputs:
+          SonarQube: "SonarQubeConnection"
+          scannerMode: "CLI"
+          configMode: "manual"
+          cliProjectKey: "kpate941_COMP308-DevOps"
+          cliProjectName: "COMP308-DevOps"
+          organization: "kpate941"
 
       # Setup Node.js
       - task: NodeTool@0
@@ -73,6 +85,16 @@ jobs:
       - script: |
           npm test
         displayName: "Run tests with coverage"
+
+      # Run SonarQube analysis
+      - task: SonarQubeAnalyze@5
+        displayName: "Run SonarQube Analysis"
+
+      # Publish Quality Gate result
+      - task: SonarQubePublish@5
+        displayName: "Publish Quality Gate Result"
+        inputs:
+          pollingTimeoutSec: "300"
 
       # Archive build artifacts
       - task: ArchiveFiles@2
