@@ -1,7 +1,7 @@
-const express = require("express");
+const express = require('express');
 const app = express();
-require("dotenv").config({
-  path: `.env.${process.env.NODE_ENV || "development"}`,
+require('dotenv').config({
+  path: `.env.${process.env.NODE_ENV || 'development'}`,
 });
 
 const port = process.env.PORT || 3000;
@@ -10,68 +10,68 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 // Development-specific middleware
-if (process.env.NODE_ENV === "development") {
-  const morgan = require("morgan");
-  app.use(morgan("dev"));
+if (process.env.NODE_ENV === 'development') {
+  const morgan = require('morgan');
+  app.use(morgan('dev'));
 
   // Enable CORS for development
   app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
+    res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
     res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept"
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept'
     );
     next();
   });
 }
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get('/health', (req, res) => {
   res.status(200).json({
-    status: "healthy",
+    status: 'healthy',
     environment: process.env.NODE_ENV,
     timestamp: new Date().toISOString(),
   });
 });
 
 // Sample in-memory data store
-let users = [
-  { id: 1, name: "John Doe", email: "john@example.com" },
-  { id: 2, name: "Jane Smith", email: "jane@example.com" },
+const users = [
+  { id: 1, name: 'John Doe', email: 'john@example.com' },
+  { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
 ];
 
 // Root endpoint
-app.get("/", (req, res) => {
+app.get('/', (req, res) => {
   res.json({
-    message: "Welcome to the COMP308 DevOps Project API",
-    version: "1.0.0",
-    status: "running",
+    message: 'Welcome to the COMP308 DevOps Project API',
+    version: '1.0.0',
+    status: 'running',
   });
 });
 
 // Get all users
-app.get("/api/users", (req, res) => {
+app.get('/api/users', (req, res) => {
   res.json(users);
 });
 
 // Get user by id
-app.get("/api/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
+app.get('/api/users/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
   const user = users.find((u) => u.id === id);
 
   if (!user) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: 'User not found' });
   }
 
   res.json(user);
 });
 
 // Create a new user
-app.post("/api/users", (req, res) => {
+app.post('/api/users', (req, res) => {
   const { name, email } = req.body;
 
   if (!name || !email) {
-    return res.status(400).json({ error: "Name and email are required" });
+    return res.status(400).json({ error: 'Name and email are required' });
   }
 
   const newUser = {
@@ -85,14 +85,14 @@ app.post("/api/users", (req, res) => {
 });
 
 // Update a user
-app.put("/api/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
+app.put('/api/users/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
   const { name, email } = req.body;
 
   const userIndex = users.findIndex((u) => u.id === id);
 
   if (userIndex === -1) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: 'User not found' });
   }
 
   users[userIndex] = {
@@ -105,22 +105,23 @@ app.put("/api/users/:id", (req, res) => {
 });
 
 // Delete a user
-app.delete("/api/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
+app.delete('/api/users/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
   const userIndex = users.findIndex((u) => u.id === id);
 
   if (userIndex === -1) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: 'User not found' });
   }
 
   const deletedUser = users[userIndex];
-  users = users.filter((u) => u.id !== id);
+  users.splice(userIndex, 1);
 
   res.json(deletedUser);
 });
 
 // Start server
 app.listen(port, () => {
+  // eslint-disable-next-line no-console
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
 });
 
