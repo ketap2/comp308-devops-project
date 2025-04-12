@@ -91,6 +91,9 @@ stages:
   - stage: DeployToDev
     displayName: "Deploy to Development"
     dependsOn: CI
+    condition: succeeded()
+    variables:
+      - group: dev-environment-variables
     jobs:
       - job: DeployToDev
         displayName: "Deploy to Dev Environment"
@@ -118,18 +121,37 @@ stages:
               npm ci --production
             displayName: "Install Production Dependencies"
 
-          # Start the application (simulate deployment)
+          # Copy environment configuration
+          - task: CopyFiles@2
+            displayName: "Copy Environment Configuration"
+            inputs:
+              SourceFolder: "$(System.DefaultWorkingDirectory)"
+              Contents: ".env.development"
+              TargetFolder: "$(System.DefaultWorkingDirectory)/app"
+              CleanTargetFolder: false
+
+          # Start the application with proper environment
           - script: |
               cd $(System.DefaultWorkingDirectory)/app
+              export NODE_ENV=development
               PORT=$(dev_port) node app.js &
               echo "Application deployed to Dev environment on port $(dev_port)"
               # Give it a moment to start
               sleep 5
               # Test if the application is running
               curl http://localhost:$(dev_port)
+              # Run integration tests against dev environment
+              npm run dev:test
               # Kill the process to not block the agent
               kill $(lsof -t -i:$(dev_port)) || true
-            displayName: "Deploy to Dev Environment"
+            displayName: "Deploy and Validate Dev Environment"
+
+          # Health check
+          - script: |
+              echo "Running health check..."
+              curl -s http://localhost:$(dev_port)/health || exit 1
+            displayName: "Health Check"
+            continueOnError: false
 
   - stage: DeployToQA
     displayName: "Deploy to QA"
