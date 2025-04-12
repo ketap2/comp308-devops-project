@@ -27,8 +27,9 @@ stages:
       - job: Build
         displayName: "Build and Test"
         steps:
-          # Checkout source code
+          # Checkout source code with full history
           - checkout: self
+            fetchDepth: 0
             displayName: "Checkout source code"
 
           # Setup Node.js
@@ -60,6 +61,9 @@ stages:
               SonarQube: "SonarQube"
               scannerMode: "CLI"
               configMode: "file"
+              projectKey: "kpate941_COMP308-DevOps"
+              projectName: "COMP308-DevOps"
+              organization: "kpate941"
 
           - task: SonarQubeAnalyze@5
             displayName: "Run SonarQube Analysis"
