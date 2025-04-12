@@ -1,0 +1,151 @@
+# Deployment Notification Configuration
+
+notifications:
+  # Email notifications
+  email:
+    deployment_success:
+      subject: "✅ Deployment Successful - {environment}"
+      template: |
+        Deployment to {environment} environment was successful!
+
+        Details:
+        - Environment: {environment}
+        - Branch: {branch}
+        - Commit: {commit}
+        - Build: {build_id}
+        - Time: {timestamp}
+
+        View deployment: {deployment_url}
+
+    deployment_failure:
+      subject: "❌ Deployment Failed - {environment}"
+      template: |
+        Deployment to {environment} environment failed!
+
+        Details:
+        - Environment: {environment}
+        - Branch: {branch}
+        - Commit: {commit}
+        - Build: {build_id}
+        - Error: {error_message}
+        - Time: {timestamp}
+
+        View deployment: {deployment_url}
+
+    approval_required:
+      subject: "⏳ Approval Required - {environment} Deployment"
+      template: |
+        Approval required for {environment} deployment!
+
+        Details:
+        - Environment: {environment}
+        - Branch: {branch}
+        - Commit: {commit}
+        - Build: {build_id}
+        - Approvers: {approvers}
+        - Time: {timestamp}
+
+        Approve deployment: {approval_url}
+
+  # Teams/Slack notifications
+  webhook:
+    deployment_success:
+      template: |
+        {
+          "text": "✅ Deployment Successful",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Deployment to {environment} was successful!*"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Environment:*\n{environment}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Branch:*\n{branch}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Build:*\n{build_id}"
+                }
+              ]
+            }
+          ]
+        }
+
+    deployment_failure:
+      template: |
+        {
+          "text": "❌ Deployment Failed",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Deployment to {environment} failed!*"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Environment:*\n{environment}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Error:*\n{error_message}"
+                }
+              ]
+            }
+          ]
+        }
+
+    approval_required:
+      template: |
+        {
+          "text": "⏳ Approval Required",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Approval required for {environment} deployment*"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Environment:*\n{environment}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Approvers:*\n{approvers}"
+                }
+              ]
+            }
+          ]
+        }
+
+# Notification recipients
+recipients:
+  email:
+    development: "dev-team@example.com"
+    qa: "qa-team@example.com"
+    staging: "staging-team@example.com"
+    production: "prod-team@example.com"
+  webhook:
+    development: "https://webhook.example.com/dev"
+    qa: "https://webhook.example.com/qa"
+    staging: "https://webhook.example.com/staging"
+    production: "https://webhook.example.com/prod"
