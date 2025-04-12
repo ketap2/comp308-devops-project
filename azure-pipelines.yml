@@ -143,59 +143,63 @@ jobs:
       # 14. Deploy to Development
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
-          export NODE_ENV=$(dev_node_env)
-          export PORT=$(dev_port)
-          export API_VERSION=$(dev_api_version)
-          export LOG_LEVEL=$(dev_log_level)
-          export CORS_ORIGIN=$(dev_cors_origin)
-          node app.js &
+          set NODE_ENV=$(dev_node_env)
+          set PORT=$(dev_port)
+          set API_VERSION=$(dev_api_version)
+          set LOG_LEVEL=$(dev_log_level)
+          set CORS_ORIGIN=$(dev_cors_origin)
+          start /B node app.js
           echo "Application deployed to Dev environment on port $(dev_port)"
-          sleep 5
+          timeout /t 5
           curl http://localhost:$(dev_port)
-          kill $(lsof -t -i:$(dev_port)) || true
+          for /f "tokens=5" %%a in ('netstat -aon ^| findstr :$(dev_port)') do taskkill /F /PID %%a
         displayName: 'Deploy to Dev Environment'
+        failOnStderr: false
 
       # 15. Deploy to QA
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
-          export NODE_ENV=$(qa_node_env)
-          export PORT=$(qa_port)
-          export API_VERSION=$(qa_api_version)
-          export LOG_LEVEL=$(qa_log_level)
-          export CORS_ORIGIN=$(qa_cors_origin)
-          node app.js &
+          set NODE_ENV=$(qa_node_env)
+          set PORT=$(qa_port)
+          set API_VERSION=$(qa_api_version)
+          set LOG_LEVEL=$(qa_log_level)
+          set CORS_ORIGIN=$(qa_cors_origin)
+          start /B node app.js
           echo "Application deployed to QA environment on port $(qa_port)"
-          sleep 5
+          timeout /t 5
           curl http://localhost:$(qa_port)
-          kill $(lsof -t -i:$(qa_port)) || true
+          for /f "tokens=5" %%a in ('netstat -aon ^| findstr :$(qa_port)') do taskkill /F /PID %%a
         displayName: 'Deploy to QA Environment'
+        failOnStderr: false
 
       # 16. Deploy to Staging
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
-          export NODE_ENV=$(staging_node_env)
-          export PORT=$(staging_port)
-          export API_VERSION=$(staging_api_version)
-          export LOG_LEVEL=$(staging_log_level)
-          export CORS_ORIGIN=$(staging_cors_origin)
-          node app.js &
+          set NODE_ENV=$(staging_node_env)
+          set PORT=$(staging_port)
+          set API_VERSION=$(staging_api_version)
+          set LOG_LEVEL=$(staging_log_level)
+          set CORS_ORIGIN=$(staging_cors_origin)
+          start /B node app.js
           echo "Application deployed to Staging environment on port $(staging_port)"
-          sleep 5
+          timeout /t 5
           curl http://localhost:$(staging_port)
-          kill $(lsof -t -i:$(staging_port)) || true
+          for /f "tokens=5" %%a in ('netstat -aon ^| findstr :$(staging_port)') do taskkill /F /PID %%a
         displayName: 'Deploy to Staging Environment'
+        failOnStderr: false
 
       # 17. Deploy to Production
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
-          export NODE_ENV=$(prod_node_env)
-          export PORT=$(prod_port)
-          export API_VERSION=$(prod_api_version)
-          export LOG_LEVEL=$(prod_log_level)
-          export CORS_ORIGIN=$(prod_cors_origin)
-          node app.js &
+          set NODE_ENV=$(prod_node_env)
+          set PORT=$(prod_port)
+          set API_VERSION=$(prod_api_version)
+          set LOG_LEVEL=$(prod_log_level)
+          set CORS_ORIGIN=$(prod_cors_origin)
+          start /B node app.js
           echo "Application deployed to Production environment on port $(prod_port)"
-          sleep 5
+          timeout /t 5
           curl http://localhost:$(prod_port)
-          kill $(lsof -t -i:$(prod_port)) || true
+          for /f "tokens=5" %%a in ('netstat -aon ^| findstr :$(prod_port)') do taskkill /F /PID %%a
         displayName: 'Deploy to Production Environment'
+        failOnStderr: false
