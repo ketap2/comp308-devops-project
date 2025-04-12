@@ -56,7 +56,7 @@ jobs:
         displayName: "Checkout source code with full history"
 
       # Prepare SonarCloud Analysis
-      - task: SonarCloudPrepare@1
+      - task: SonarCloudPrepare@4
         displayName: "Prepare SonarCloud Analysis"
         inputs:
           SonarCloud: "SonarQubeConnection"
@@ -74,7 +74,8 @@ jobs:
 
       # Install dependencies
       - script: |
-          npm ci
+          npm install
+          npm install --save-dev
         displayName: "Install dependencies"
 
       # Lint code
@@ -89,11 +90,11 @@ jobs:
         displayName: "Run tests with coverage"
 
       # Run SonarCloud analysis
-      - task: SonarCloudAnalyze@1
+      - task: SonarCloudAnalyze@4
         displayName: "Run SonarCloud Analysis"
 
       # Publish Quality Gate result
-      - task: SonarCloudPublish@1
+      - task: SonarCloudPublish@4
         displayName: "Publish Quality Gate Result"
         inputs:
           pollingTimeoutSec: "300"
@@ -137,7 +138,7 @@ jobs:
       # Install dependencies for deployment
       - script: |
           cd $(System.DefaultWorkingDirectory)/app
-          npm ci --production
+          npm install --production
         displayName: "Install Production Dependencies"
 
       # Deploy to Development
